@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 
 # Create your views here.
 import requests
@@ -20,4 +22,28 @@ def google_scholar_search(query):
 def search_results(request):
     query = request.GET.get('q', '')
     results = google_scholar_search(query)
-    return render(request, 'yourapp/search_results.html', {'results': results})
+    print("Search results:", results)
+
+    # Extract only the relevant search results (articles)
+    articles = results.get('organic_results', [])
+
+    # Configure the number of articles to display per page
+    articles_per_page = 10
+
+    # Create a Paginator object
+    paginator = Paginator(articles, articles_per_page)
+
+    # Get the current page number from the request's GET parameters
+    page_number = request.GET.get('page')
+
+    try:
+        # Get the Page object for the current page
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g., 9999), deliver last page
+        page = paginator.page(paginator.num_pages)
+
+    return render(request, 'yourapp/search_results.html', {'results': page, 'query': query})
